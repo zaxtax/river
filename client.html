@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<head>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet"
+      href="bts/bootstrap-3.1.1-dist/css/bootstrap.min.css">
+
+<!-- Optional theme -->
+<link rel="stylesheet"
+      href="bts/bootstrap-3.1.1-dist/css/bootstrap-theme.min.css">
+
+<link rel="stylesheet" href="css/linereg.css">
+
+<script src="js/jquery.min.js">
+</script>
+<script src="bts/bootstrap-3.1.1-dist/js/bootstrap.min.js">
+</script>
+
+</head>
+<style type="text/css">
+    p {line-height:90%}
+
+    .bars rect {
+	fill: steelblue;
+    }
+
+    .x.axis {
+	font-size: x-small;
+    }
+
+</style>
+<body>
+  <script src="js/d3.v3.min.js"></script>
+  <script src="js/histogram-chart.js"></script>
+  <script src="js/simple_statistics.js"></script>
+  <script src="js/corr_w_scatter.js"></script>
+  <script src="js/linreg.js"></script>
+  
+  <script type="text/javascript">
+    var ws = new WebSocket("ws://127.0.0.1:8000/sampler_output");
+    
+    var data = {};
+
+    var data_size = 0;
+    
+    var corr = setInterval(function () {
+	if (Object.keys(data).length != 0) {
+	    correlationPlot(data);
+	}
+    } ,3000);
+    
+    ws.onmessage = function(evt) {
+	raw = evt.data;
+	new_data = JSON.parse(evt.data);
+
+	curSample = 0;
+	if ('current_sample' in new_data) {
+	    curSample = new_data['current_sample'];
+	}
+	
+	for (var rv in new_data.rvars) {
+	    rv_new_data = new_data.rvars[rv];
+	 	    
+	    if (rv in data) {
+		// append new data from the socket
+		data[rv] = data[rv].concat(rv_new_data);
+	    } else {
+		data[rv] = rv_new_data;
+		d3.select(".charts").append("div")
+		    .attr("class", rv+"_chart col-md-6")
+		    .append("div")
+		    .attr("class", rv+"_extra col-md-4")
+		d3.select("."+rv+"_extra").append("div")
+		    .attr("class", rv+"_name")
+		    .text(rv);
+		d3.select("."+rv+"_extra").append("div")
+		    .attr("class", rv+"_min"); 
+		d3.select("."+rv+"_extra").append("div")
+		    .attr("class", rv+"_max");
+	    }
+	    update(rv);
+
+	    if (curSample <= 0) {
+		curSample = rv_new_data.length;
+	    }
+	}
+
+        if ('current_sample' in new_data) {
+           data_size = curSample
+        } else {
+	   data_size += curSample;
+        }
+	
+	var bar = $('.progress-bar');
+	
+	if ('total_samples' in new_data) {
+	    // update progress bar
+	    totalSamples = new_data['total_samples'];
+	    percentComplete = Math.round(data_size/totalSamples*100);
+	    bar.width(percentComplete+"%");
+	    bar.text(percentComplete+"%");
+
+	    if (percentComplete == 100) {
+	 	//ws.onclose({});
+	    }
+	} else {
+	    bar.width(100+"%");
+	    bar.text("Number of samples plotted: " + data_size);
+	    
+	    if ('close' in new_data) {
+		if (new_data['close']) {
+		    ws.onclose({});
+		}
+	    }
+	}
+
+        if ('linreg' in new_data) {
+            linreg(new_data["linreg"]);
+        }
+	
+    };
+    
+    ws.onclose = function(evt) {
+	console.log("Welp, done!");
+	clearInterval(corr);
+	$('.progress').removeClass('active');
+    };
+
+    function update(rv) {
+	d3.selectAll("."+rv+"_chart").selectAll("svg").remove();
+	d3.select("."+rv+"_chart")
+	    .datum(data[rv])
+	    .call(histogramChart()
+		  .bins(25)
+		  .height(250)
+		  .width(480)
+		  .tickFormat(d3.format(".03f")));
+	
+	d3.select("."+rv+"_min").text("Min: "+Math.min.apply(Math, data[rv]))
+	d3.select("."+rv+"_max").text("Max: "+Math.max.apply(Math, data[rv]))
+    }
+    
+    
+  </script>
+
+  <div class="container-fluid">
+    <div class="progress progress-striped active">
+      <div class="progress-bar progress-bar-success"
+           role="progressbar"
+           aria-valuenow="40"
+           aria-valuemin="0"
+           aria-valuemax="100"
+           style="width: 0%">
+      </div>
+    </div>
+    <div class="charts"></div>
+    <div id="linreg" class="col-md-6"></div>
+    <div id="corplot" class="col-md-12"></div>
+  </div>
+</body>
+</html>
