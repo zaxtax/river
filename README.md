@@ -1,4 +1,5 @@
-# River: A visualization frontend for MCMC samplers
+# River:
+## A visualization frontend for MCMC samplers
 
 The visualization relies on some python libraries.
 Install them with
