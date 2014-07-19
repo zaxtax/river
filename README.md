@@ -22,3 +22,19 @@ As an example to create samples using [wssh](https://github.com/progrium/wssh)
 Then open the client.html in a web browser
 
 If you have pymc3 installed, try out of the other examples
+
+## JSON visualization grammar
+
+The frontend accepts JSON with the following format
+
+    format = "{" draw_types* "}"
+    draw_types = line | histogram | total | current
+    line = "\"linreg\": [" tuple* "]" 
+    tuple = "{\"x\":" number "} , {\"y\":" number "}"
+    total = "\"total_samples\":" number
+    current = "\"current_sample\":" number
+    histogram = "\"rvars\": [" vars* "]" 
+    vars = string ":" "[" samples "]"
+    samples = number*
+
+Expect this grammar to be extended and made more modular
