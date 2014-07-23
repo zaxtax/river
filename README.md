@@ -21,7 +21,7 @@ As an example to create samples using [wssh](https://github.com/progrium/wssh)
 
 Then open the client.html in a web browser
 
-If you have pymc3 installed, try out of the other examples
+If you have pymc3 installed, try out some of the other examples
 
 ## JSON visualization grammar
 
